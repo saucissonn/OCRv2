@@ -1,0 +1,150 @@
+#include <SDL2/SDL.h>
+#include <SDL2/SDL_ttf.h>
+#include <stdlib.h>
+#include <stdio.h>
+
+#include "globals.h"
+#include "button.h"
+#include "frame.h"
+#include "image.h"
+#include "text_area.h"
+
+void handle_event_button(Button *button) {
+	if (button->interactible && button->function) {
+		button->function(button->args);
+	}
+}
+
+void handle_event_text_area(TextArea *text_area) {
+	printf("Text area event\n");
+}
+
+void handle_event_cursor(Cursor *cursor) {
+	printf("Cursor event\n");
+}
+
+void handle_event_nontext_key(SDL_Event event, Frame *frame) {
+	switch(event.key.keysym.sym) {
+		case SDLK_RIGHT:
+			printf("Right key pressed\n");
+			break;
+
+		case SDLK_BACKSPACE:
+			if (frame->current_text_area) {
+				delete_char(Renderer, frame->current_text_area->text);
+			}
+			break;
+
+		case SDLK_RETURN: // Press Enter
+			break;
+	}
+}
+
+int handle_event_mouse(Frame *frame) {
+	int mouseX, mouseY;
+	switch(SDL_GetMouseState(&mouseX, &mouseY)) {
+		case SDL_BUTTON(SDL_BUTTON_LEFT):
+			clear_current_states(frame);
+			left_pressed = 1;
+
+			Button *btn_clicked = collision_buttons(mouseX, mouseY, frame->buttons);
+			if (btn_clicked) {
+				handle_event_button(btn_clicked);
+                return 1;
+			}
+
+			frame->current_text_area = collision_text_areas(mouseX, mouseY, frame->text_areas);
+			if (frame->current_text_area) {
+				handle_event_text_area(frame->current_text_area);
+				return 1;
+			}
+
+			frame->current_cursor = collision_cursors(mouseX, mouseY, frame->cursors);
+			if (frame->current_cursor) {
+				handle_event_cursor(frame->current_cursor);
+				return 1;
+			}
+
+			//printf("Left click pressed at pos: %d, %d\n", mouseX, mouseY);
+			break;		
+
+		default:
+			printf("Mouse click pressed at pos: %d, %d\n", mouseX, mouseY);
+			break;
+	}
+	return 0;
+}
+
+int handle_events(SDL_Event event, Frame *frame) {
+	while (SDL_PollEvent(&event))
+	{
+		switch(event.type) {
+			case SDL_QUIT:
+				running = 0;
+				break;
+
+			case SDL_DROPFILE:
+			{
+				char *path = event.drop.file;
+
+				printf("Fichier : %s\n", path);
+
+				load_image(frame, path);
+
+				SDL_free(path);
+				break;
+			}
+
+			case SDL_TEXTINPUT: // Press a symbol
+				if (frame->current_text_area) {
+					add_char(Renderer, frame->current_text_area->text, event.text.text[0]);
+				}
+				printf("char is: %s\n", event.text.text);
+				break;
+
+			case SDL_KEYDOWN: // Press a key but not a symbol
+				handle_event_nontext_key(event, frame);
+				break;
+
+			case SDL_MOUSEBUTTONDOWN:
+			{
+				Frame *curr = frame;
+
+				while (curr->subframe) {
+					curr = curr->subframe;
+				}
+
+				while (curr) {
+					if (handle_event_mouse(curr)) {
+						mouse_used = 1;
+						return 1;
+					}
+
+					if (curr != frame) {
+						Frame *parent = frame;
+
+						while (parent->subframe != curr) {
+							parent = parent->subframe;
+						}
+
+						destroy_frame(curr);
+						parent->subframe = NULL;
+
+						curr = parent;
+					} else {
+						break;
+					}
+				}
+
+				return 0;
+			}
+            case SDL_MOUSEBUTTONUP:
+                if (event.button.button == SDL_BUTTON_LEFT) {
+                    frame->current_cursor = NULL;
+					left_pressed = 0;
+				}
+                break;
+		}
+	}
+	return 0;
+}
