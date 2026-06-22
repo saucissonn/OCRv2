@@ -24,7 +24,6 @@ Text *create_text(char *text, float x, float y, float size, SDL_Color color);
 Text *copy_text(Text *text);
 
 Text *add_text(Text *texts, Text *text);
-Text *init_texts();
 
 void display_texts(Text *texts);
 void destroy_texts(Text *texts);

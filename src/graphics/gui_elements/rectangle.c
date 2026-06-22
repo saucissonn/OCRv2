@@ -1,6 +1,6 @@
 #include "rectangle.h"
-#include "globals.h"
-#include "utils.h"
+#include "../globals.h"
+#include "../utils.h"
 
 #include <SDL2/SDL.h>
 
@@ -72,18 +72,6 @@ Rectangle *add_rectangle(Rectangle *rectangles, Rectangle *rectangle) {
 	}
 
 	curr->next = rectangle;
-	return rectangles;
-}
-
-Rectangle *init_rectangles() {
-	Rectangle *rectangles = NULL;
-
-	Rectangle *left_bar = create_rectangle(0, 0, BAR_W, 1, 0, Gray);
-	rectangles = add_rectangle(rectangles, left_bar);
-
-	Rectangle *default_background = create_rectangle(BAR_W, 0, 1 - BAR_W, 1, 0, White);
-	rectangles = add_rectangle(rectangles, default_background);
-
 	return rectangles;
 }
 

@@ -4,10 +4,10 @@
 #include <stdio.h>
 
 #include "globals.h"
-#include "button.h"
+#include "gui_elements/button.h"
 #include "frame.h"
 #include "image.h"
-#include "text_area.h"
+#include "gui_elements/text_area.h"
 
 void handle_event_button(Button *button) {
 	if (button->interactible && button->function) {

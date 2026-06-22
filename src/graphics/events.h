@@ -5,7 +5,7 @@
 #include <SDL2/SDL_ttf.h>
 
 #include "frame.h"
-#include "button.h"
+#include "gui_elements/button.h"
 
 void handle_event_button(Button *button);
 void handle_event_text_area(TextArea *text_area);

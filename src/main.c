@@ -1,8 +1,9 @@
-#include "frame.h"
-#include "events.h"
-#include "update.h"
-#include "utils.h"
-#include "globals.h"
+#include "graphics/frame.h"
+#include "graphics/frames/frames.h"
+#include "graphics/events.h"
+#include "graphics/update.h"
+#include "graphics/utils.h"
+#include "graphics/globals.h"
 
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_image.h>
@@ -13,7 +14,7 @@ int main(void)
 	init_global_variables();
 
 	Frame *frame = create_frame(NULL);
-	init_frame(frame);
+	init_frame_ocr(frame);
 
     if (!frame)
         return 1;

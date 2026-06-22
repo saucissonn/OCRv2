@@ -1,9 +1,9 @@
 #include "cursor.h"
 #include "text.h"
 #include "rectangle.h"
-#include "utils.h"
-#include "frame.h"
-#include "globals.h"
+#include "../utils.h"
+#include "../frame.h"
+#include "../globals.h"
 
 #include <math.h>
 #include <SDL2/SDL_ttf.h>
@@ -50,16 +50,6 @@ Cursor *add_cursor(Cursor *cursors, Cursor *cursor) {
     curr->next = cursor;
 
     return cursors;
-}
-
-Cursor *init_cursors() {
-	Cursor *res = NULL;
-
-	Cursor *crs1 = create_cursor(0.2, 0.8, 0.15, 0.03, 0, 100.);
-
-	res = add_cursor(res, crs1);
-
-	return res;
 }
 
 void display_cursors(SDL_Renderer *renderer, Cursor *cursors) {

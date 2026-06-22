@@ -1,5 +1,5 @@
 #include "text.h"
-#include "globals.h"
+#include "../globals.h"
 
 #include <SDL2/SDL_ttf.h>
 #include <string.h>
@@ -25,7 +25,7 @@ Text *create_text(char *text, float x, float y, float size, SDL_Color color) {
 	res->y = y;
 	res->size = size;
 
-	TTF_Font *font = TTF_OpenFont("DejaVuSans.ttf", size * DELTA);
+	TTF_Font *font = TTF_OpenFont("graphics/DejaVuSans.ttf", size * DELTA);
 	res->font = font;
 
 	if (!*text) printf("HERE\n");
@@ -80,32 +80,6 @@ Text *add_text(Text *texts, Text *text) {
 	curr->next = text;
 
 	return texts;
-}
-
-Text *init_texts() {
-	Text *res = NULL;
-
-	Text *txt1 = create_text(
-		"OCR parameters:",
-		DEFAULT_SPACE_W,
-		DEFAULT_SPACE_W,
-		FONT_SIZE4,
-		White
-	);
-
-	res = add_text(res, txt1);
-
-	Text *txt2 = create_text(
-		"Insert an image here",
-		0.5, 
-		0.5,
-		FONT_SIZE5,
-		Black
-	);
-
-	res = add_text(res, txt2);
-
-	return res;
 }
 
 void display_texts(Text *texts) {

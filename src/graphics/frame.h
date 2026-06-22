@@ -2,10 +2,10 @@
 #define APP_H
 
 #include <SDL2/SDL.h>
-#include "rectangle.h"
-#include "text.h"
-#include "text_area.h"
-#include "cursor.h"
+#include "gui_elements/rectangle.h"
+#include "gui_elements/text.h"
+#include "gui_elements/text_area.h"
+#include "gui_elements/cursor.h"
 
 typedef struct Button Button;
 typedef struct Cursor Cursor;
@@ -34,9 +34,6 @@ Frame *create_frame(Frame *parent);
 
 void clear_current_states(Frame *frame);
 void clear_frame(Frame *frame);
-
-void init_frame(Frame *frame);
-void init_frame2(Frame *frame);
 
 void destroy_frame(Frame *frame);
 

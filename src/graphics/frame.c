@@ -1,8 +1,8 @@
 #include "frame.h"
-#include "rectangle.h"
-#include "text.h"
-#include "button.h"
-#include "text_area.h"
+#include "gui_elements/rectangle.h"
+#include "gui_elements/text.h"
+#include "gui_elements/button.h"
+#include "gui_elements/text_area.h"
 #include "image.h"
 #include "globals.h"
 
@@ -71,21 +71,6 @@ void clear_frame(Frame *frame) {
 
 	destroy_frame(frame->subframe);
     frame->subframe = NULL;
-}
-
-void init_frame(Frame *frame) {
-	frame->rectangles = init_rectangles();
-	frame->texts = init_texts();
-	frame->buttons = init_buttons(frame);	
-	frame->text_areas = init_text_areas();
-	frame->cursors = init_cursors();
-}
-
-void init_frame2(Frame *frame) {
-    //frame->rectangle = init_rectangle();
-    frame->texts = init_texts();
-    frame->buttons = init_buttons(frame);
-    frame->text_areas = init_text_areas();
 }
 
 void destroy_frame(Frame *frame) {

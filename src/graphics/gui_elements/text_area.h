@@ -15,8 +15,6 @@ void lower_text(Text *text, Rectangle *rectangle);
 TextArea *create_text_area(Text *text, Rectangle *rect);
 TextArea *add_text_area(TextArea *text_areas, TextArea *text_area);
 
-TextArea *init_text_areas();
-
 void display_text_areas(SDL_Renderer *renderer, TextArea *text_areas);
 void destroy_text_areas(TextArea *text_areas);
 TextArea *collision_text_areas(int x, int y, TextArea *text_areas);

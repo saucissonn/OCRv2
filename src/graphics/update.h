@@ -2,11 +2,11 @@
 #define UPDATE_H
 
 #include "globals.h"
-#include "rectangle.h"
-#include "text.h"
-#include "button.h"
-#include "text_area.h"
-#include "cursor.h"
+#include "gui_elements/rectangle.h"
+#include "gui_elements/text.h"
+#include "gui_elements/button.h"
+#include "gui_elements/text_area.h"
+#include "gui_elements/cursor.h"
 #include "frame.h"
 
 void update_mouse();

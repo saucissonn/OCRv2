@@ -1,6 +1,6 @@
 #include "text_area.h"
-#include "utils.h"
-#include "globals.h"
+#include "../utils.h"
+#include "../globals.h"
 
 #include <SDL2/SDL.h>
 

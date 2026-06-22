@@ -1,0 +1,19 @@
+Second version of an OCR.
+
+Currently just a graphic lib with some examples.
+There are buttons, text areas, cursors and you can create multiple frames.
+You can also drop an image.
+
+I plan to implement some categories accessible with the MENU button.
+Each categorie is a different frame, there is the tutorial (how to us the app),
+the OCR, the training (of the OCR) and some credits.
+
+TODO list:
+
+-Clean the code
+-Add comments
+-Implement the OCR
+-Link the OCR with the app
+-Create a visualizer of the training / process of the OCR
+-Optimize the OCR
+-Create an optimized mode

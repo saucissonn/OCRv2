@@ -3,7 +3,7 @@
 
 #include "text.h"
 #include "rectangle.h"
-#include "frame.h"
+#include "../frame.h"
 
 #include <SDL2/SDL.h>
 
@@ -27,8 +27,6 @@ typedef struct Cursor {
 
 Cursor *create_cursor(float x, float y, float w, float h, float min, float max);
 Cursor *add_cursor(Cursor *cursors, Cursor *cursor);
-
-Cursor *init_cursors();
 
 void display_cursors(SDL_Renderer *renderer, Cursor *cursors);
 void destroy_cursors(Cursor *cursors);

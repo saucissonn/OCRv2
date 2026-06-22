@@ -1,4 +1,5 @@
-#include "text.h"
+#include "gui_elements/text.h"
+#include "utils.h"
 #include "globals.h"
 
 #include <SDL2/SDL.h>
@@ -59,7 +60,7 @@ void init_global_variables() {
         return;
     }
 
-    if (!font_init(Renderer, "DejaVuSans.ttf")) {
+    if (!font_init(Renderer, "graphics/DejaVuSans.ttf")) {
         fprintf(stderr, "Impossible to load the font\n");
     }
 }

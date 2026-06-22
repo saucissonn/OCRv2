@@ -23,12 +23,10 @@ Button *create_button(int interactible, Text *text, Rectangle *rect);
 Button *add_button(Button *buttons, Button *button);
 Button *copy_button(Button *button);
 
-void button_funtion1();
-void button_sunction_sub1();
-Button *init_buttons(Frame *frame);
-
 void display_buttons(SDL_Renderer *renderer, Button *buttons);
 void destroy_buttons(Button *buttons);
 Button *collision_buttons(int x, int y, Button *buttons);
+
+Button *create_submenu(int nb, Button *button);
 
 #endif

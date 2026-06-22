@@ -22,7 +22,6 @@ Rectangle *create_rectangle(float x, float y, float w, float h, float outline_w,
 Rectangle *copy_rectangle(Rectangle *rect);
 
 Rectangle *add_rectangle(Rectangle *rectangles, Rectangle *rectangle);
-Rectangle *init_rectangles();
 
 void display_rectangles(SDL_Renderer *renderer, Rectangle *rectangles, int over);
 void destroy_rectangles(Rectangle *rectangles);
