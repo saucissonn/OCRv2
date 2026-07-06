@@ -1,0 +1,10 @@
+#ifndef UTILS_H
+#define UTILS_H
+
+#include "image.h"
+
+double find_angle(int x1, int y1, int x2, int y2);
+void elapsed_time(char *name);
+double rand_uniform();
+
+#endif

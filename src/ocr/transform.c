@@ -2,6 +2,7 @@
 
 #include <stdlib.h>
 #include <math.h>
+#include <stdio.h>
 
 Image *rotate_image(Image *src, double angle)
 {
@@ -32,7 +33,7 @@ Image *rotate_image(Image *src, double angle)
         return NULL;
     }
 
-    // fond blanc
+    // white background
     for (int i = 0; i < new_width * new_height; i++)
         dst->pixels[i] = 0;
 
@@ -122,14 +123,145 @@ Image *crop_white(Image *src)
     {
         for (int x = 0; x < dst->width; x++)
         {
-            set_pixel(dst,
-                      x,
-                      y,
-                      get_pixel(src,
-                                x + left,
-                                y + top));
+            set_pixel(dst, x, y,
+						get_pixel(src, x + left, y + top));
         }
     }
 
     return dst;
 }
+
+static double hough_angle_range(Image *img, double start_angle, double end_angle,
+                                double precision, int use_perpendicular)
+{
+    int width = img->width;
+    int height = img->height;
+
+    int rho_max = (int)ceil(sqrt(width * width + height * height)); // rho is the maximum distance from the origin
+
+    double rho_step = 0.5; // let 0.5 for normal images, put precision or even less for very thin lines / very small images
+    int nb_rho = ceil(2*rho_max/rho_step)+1;
+
+    int nb_angles = (int)ceil((end_angle - start_angle) / precision) + 1;
+
+    int *acc = calloc(nb_angles * nb_rho, sizeof(int)); // the accumulator contains every possibilities of rho and angle
+
+    double *cos_table = malloc(nb_angles * sizeof(double)); // pre compute them for better efficiency
+    double *sin_table = malloc(nb_angles * sizeof(double));
+
+    for (int t = 0; t < nb_angles; t++)
+    {
+        double angle = start_angle + t * precision;
+        double rad = angle * M_PI / 180.0; // convert angle to rad
+
+        cos_table[t] = cos(rad);
+        sin_table[t] = sin(rad);
+    }
+
+    for (int y = 0; y < height; y++)
+    {
+        for (int x = 0; x < width; x++)
+        {
+            if (img->pixels[y * width + x] == 0)
+                continue;
+
+            for (int t = 0; t < nb_angles; t++) // vote on a pixel with every combinations
+            {
+                double rho = x * cos_table[t] + y * sin_table[t];
+                int index = lround((rho + rho_max) / rho_step);
+
+                if (index >= 0 && index < nb_rho)
+                    acc[t * nb_rho + index]++;
+            }
+        }
+    }
+
+    int *score = calloc(nb_angles, sizeof(int));
+
+    for (int t = 0; t < nb_angles; t++) // find the strongest line for every angle
+    {
+        int max = 0;
+
+        for (int r = 0; r < nb_rho; r++)
+        {
+            int votes = acc[t * nb_rho + r];
+
+            if (votes > max)
+                max = votes;
+        }
+
+        score[t] = max;
+    }
+
+    int best_theta = 0;
+    int best_score = 0;
+
+    if (use_perpendicular) // useful if "+" shapes
+    {
+        int offset90 = (int)lround(90.0 / precision);
+
+        for (int t = 0; t < nb_angles; t++) // combine horizontal and vertical lines
+        {
+            int t90 = (t + offset90) % nb_angles;
+
+            int s = score[t] + score[t90];
+
+            if (s > best_score)
+            {
+                best_score = s;
+                best_theta = t;
+            }
+        }
+    }
+    else
+    {
+        for (int t = 0; t < nb_angles; t++) // only keep the strongest line
+        {
+            if (score[t] > best_score)
+            {
+                best_score = score[t];
+                best_theta = t;
+            }
+        }
+    }
+
+    free(acc);
+    free(score);
+    free(cos_table);
+    free(sin_table);
+
+    return start_angle + best_theta * precision;
+}
+
+double hough_angle(Image *img, double precision)
+{
+    if (precision <= 0.0)
+    {
+        printf("Error: hough_angle, precision <= 0\n");
+        return 0.0;
+    }
+
+    double coarse = hough_angle_range(img, 0.0, 180.0, 1.0, 0);
+
+    double start = coarse - 2.0;
+    double end = coarse + 2.0;
+
+    if (start < 0.0)
+        start = 0.0;
+
+    if (end > 180.0)
+        end = 180.0;
+
+    double best = hough_angle_range(img, start, end, precision, 0);
+
+    best -= 90.0;
+
+    if (best < -90.0)
+        best += 180.0;
+
+    if (best > 90.0)
+        best -= 180.0;
+
+    return best;
+}
+

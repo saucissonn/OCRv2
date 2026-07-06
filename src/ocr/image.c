@@ -1,7 +1,7 @@
 #include "image.h"
+#include "detection.h"
 
 #include <stdlib.h>
-
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_image.h>
 
@@ -23,31 +23,12 @@ Image *load_png(const char *filename)
 
     SDL_FreeSurface(src);
 
-    if (surface == NULL)
-    {
-        SDL_Log("%s", SDL_GetError());
-        return NULL;
-    }
-
     Image *img = malloc(sizeof(Image));
-
-    if (img == NULL)
-    {
-        SDL_FreeSurface(surface);
-        return NULL;
-    }
 
     img->width = surface->w;
     img->height = surface->h;
 
     img->pixels = malloc(img->width * img->height);
-
-    if (img->pixels == NULL)
-    {
-        free(img);
-        SDL_FreeSurface(surface);
-        return NULL;
-    }
 
     SDL_LockSurface(surface);
 
@@ -62,7 +43,7 @@ Image *load_png(const char *filename)
             int gray = (p[0] + p[1] + p[2]) / 3;
 
             img->pixels[y * img->width + x] =
-                (gray < 128) ? 1 : 0;
+                (gray < 210) ? 1 : 0;
         }
     }
 
@@ -70,7 +51,16 @@ Image *load_png(const char *filename)
 
     SDL_FreeSurface(surface);
 
+	img->squares = NULL;
+	img->valid_squares = NULL;
+
     return img;
+}
+
+void process_image(Image *img)
+{
+	img->squares = get_squares_sudoku(img);
+	img->valid_squares = get_valid_squares(img->squares);
 }
 
 void free_image(Image *img)
@@ -79,6 +69,13 @@ void free_image(Image *img)
         return;
 
     free(img->pixels);
+	if (img->squares)
+	{
+		for (int i = 0; i < 81; i++)
+			free(img->squares[i]);
+	}
+	free(img->squares);
+	free(img->valid_squares);
     free(img);
 }
 

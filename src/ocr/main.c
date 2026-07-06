@@ -1,14 +1,27 @@
 #include <stdio.h>
-
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_image.h>
+#include <time.h>
 
 #include "image.h"
 #include "transform.h"
 #include "display.h"
+#include "utils.h"
+#include "detection.h"
+#include "matrix.h"
+#include "nn.h"
+#include "fs.h"
+#include "ocr.h"
+#include "globals.h"
+#include "train.h"
 
 int main(void)
 {
+	srand(time(NULL));
+
+    double learning_coeff = 0.01;
+    Ocr *ocr = init_ocr();
+
     if (SDL_Init(SDL_INIT_VIDEO) != 0)
     {
         SDL_Log("%s", SDL_GetError());
@@ -22,44 +35,20 @@ int main(void)
         return 1;
     }
 
-    Image *img = load_png("images/reference_tilted.png");
+	for (int i = 0; i < 10; i++)
+	{
+		size_t nb_file = random_file("images/training/ribbon");
 
-    if (img == NULL)
-    {
-        IMG_Quit();
-        SDL_Quit();
-        return 1;
-    }
+		train(nb_file, ocr->nn, &learning_coeff, 8);
+	}
 
-    Image *rotated = rotate_image(img, -10.9);
+	destroy_ocr(ocr);
 
-    if (rotated == NULL)
-    {
-        free_image(img);
-        IMG_Quit();
-        SDL_Quit();
-        return 1;
-    }
-
-    Image *cropped = crop_white(rotated);
-
-    if (cropped == NULL)
-    {
-        free_image(rotated);
-        free_image(img);
-        IMG_Quit();
-        SDL_Quit();
-        return 1;
-    }
-
-    display_image(cropped);
-
-    free_image(cropped);
-    free_image(rotated);
-    free_image(img);
+	pthread_barrier_destroy(&barrier_char);
 
     IMG_Quit();
     SDL_Quit();
 
+	printf("GOOD ENDING\n");
     return 0;
 }

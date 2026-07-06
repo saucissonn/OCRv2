@@ -1,0 +1,25 @@
+#ifndef NN_H
+#define NN_H
+
+#include <SDL2/SDL_image.h>
+#include <stdio.h>
+#include <stdlib.h>
+
+#include "layer.h"
+
+void relu(Layer *l);
+
+void update_learning_coeff(double *learning_coeff);
+void soft_max(Layer *l);
+void sigmoid(Layer *l);
+
+void forward(Layer *l);
+void backward(Layer *l);
+void compute_gradients(Layer *l);
+void update_SGD(Layer *l, double learning_coeff);
+
+void print_outputs(Layer *l);
+int index_max_output(Layer *l);
+void put_in_output(SDL_Surface *rgba);
+
+#endif
