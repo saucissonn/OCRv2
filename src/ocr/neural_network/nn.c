@@ -1,7 +1,7 @@
 #include "nn.h"
-#include "globals.h"
-#include "image.h"
-#include "matrix.h"
+#include "../useful/globals.h"
+#include "../process_img/image.h"
+#include "../useful/matrix.h"
 
 #include <math.h>
 #include <stdio.h>

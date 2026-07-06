@@ -1,5 +1,5 @@
-#include "detection.h"
-#include "matrix.h"
+#include "../process_img/detection.h"
+#include "../useful/matrix.h"
 
 #include <stdlib.h>
 #include <stdint.h>

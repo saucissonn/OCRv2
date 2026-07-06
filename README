@@ -10,9 +10,7 @@ the OCR, the training (of the OCR) and some credits.
 
 TODO list:
 
--Clean the code
 -Add comments
--Implement the OCR
 -Link the OCR with the app
 -Create a visualizer of the training / process of the OCR
 -Optimize the OCR

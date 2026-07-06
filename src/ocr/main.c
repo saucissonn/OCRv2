@@ -3,17 +3,16 @@
 #include <SDL2/SDL_image.h>
 #include <time.h>
 
-#include "image.h"
-#include "transform.h"
-#include "display.h"
-#include "utils.h"
-#include "detection.h"
-#include "matrix.h"
-#include "nn.h"
-#include "fs.h"
-#include "ocr.h"
-#include "globals.h"
-#include "train.h"
+#include "process_img/image.h"
+#include "process_img/transform.h"
+#include "useful/utils.h"
+#include "process_img/detection.h"
+#include "useful/matrix.h"
+#include "neural_network/nn.h"
+#include "process_img/fs.h"
+#include "neural_network/ocr.h"
+#include "useful/globals.h"
+#include "neural_network/train.h"
 
 int main(void)
 {

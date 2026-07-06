@@ -1,5 +1,5 @@
 #include "layer.h"
-#include "utils.h"
+#include "../useful/utils.h"
 
 #include <math.h>
 #include <stdio.h>
