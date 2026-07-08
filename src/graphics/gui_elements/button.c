@@ -26,6 +26,7 @@ Button *create_button(int interactible, Text *text, Rectangle *rect) {
 	Button *res = malloc(sizeof(Button));
 
 	res->interactible = interactible;
+    text->len_max = 10000; // Update new limit, not accessible by the client
 	res->text = text;
 	res->rect = rect;
 

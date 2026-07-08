@@ -8,16 +8,16 @@
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_image.h>
 #include <stdio.h>
+#include <time.h>
 
 int main(void)
 {
+	srand(time(NULL));
+	
 	init_global_variables();
 
 	Frame *frame = create_frame(NULL);
 	init_frame_ocr(frame);
-
-    if (!frame)
-        return 1;
 
     SDL_Event event;
 
@@ -37,6 +37,8 @@ int main(void)
 		SDL_RenderPresent(Renderer);
 	}
 
+	SDL_StopTextInput();
+
 	SDL_FreeCursor(handCursor);
 	SDL_FreeCursor(arrowCursor);
 	SDL_FreeCursor(textCursor);
@@ -50,6 +52,8 @@ int main(void)
     TTF_Quit();
     IMG_Quit();
     SDL_Quit();
+
+	printf("GOOD ENDING\n");
 
     return 0;
 }

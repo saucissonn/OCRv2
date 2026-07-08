@@ -14,30 +14,45 @@
 #include <SDL2/SDL_ttf.h>
 #include <stdio.h>
 
-static Rectangle *init_rectangles() {
+static Rectangle *init_rectangles() 
+{
 	return NULL;
 }
 
-static Text *init_texts() {
+static Text *init_texts()
+{
 	return NULL;
 }
 
-static Button *init_buttons(Frame *frame) {
+static Button *init_buttons(Frame *frame)
+{
 	return NULL;
 }
 
-static TextArea *init_text_areas() {
+static TextArea *init_text_areas()
+{
 	return NULL;
 }
 
-static Cursor *init_cursors() {
+static Cursor *init_cursors()
+{
 	return NULL;
 }
 
-void init_frame_default(Frame *frame) {
+static void quit_function(void **data)
+{
+	return;
+}
+
+void init_frame_default(Frame *frame)
+{
 	frame->rectangles = init_rectangles();
 	frame->texts = init_texts();
 	frame->buttons = init_buttons(frame);	
 	frame->text_areas = init_text_areas();
 	frame->cursors = init_cursors();
+	
+	frame->quit_args = NULL;
+	frame->quit_function = quit_function;
 }
+

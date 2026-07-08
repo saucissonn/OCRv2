@@ -1,5 +1,5 @@
 #include "train.h"
-#include "../useful/globals.h"
+#include "../useful/globals_ocr.h"
 #include "../process_img/image.h"
 #include "../useful/matrix.h"
 #include "nn.h"
@@ -10,13 +10,15 @@
 #include <pthread.h>
 
 
-double start_to_loss(int *input, Layer *input_layer, int expected, double *learning_coeff)
+double start_to_loss(int *input, Ocr *ocr, int expected)
 {
     if (!input)
     {
         printf("no input\n");
         return 0;
     }
+
+	Layer *input_layer = ocr->nn;
 
     put_in_input(input, 28, 28, input_layer);
 
@@ -39,10 +41,10 @@ double start_to_loss(int *input, Layer *input_layer, int expected, double *learn
     pthread_mutex_lock(&mutex_char);
     printf("loss: %f, value: %f, steps: %d, "
             "expected: %d, get: %d, result: %d, lr: %f\n",
-            loss, output_layer->output[expected - 1], c_steps,
-            expected - 1, idx_max_output, result, *learning_coeff);
+            loss, output_layer->output[expected - 1], *ocr->c_steps,
+            expected - 1, idx_max_output, result, *ocr->learning_coeff);
 
-    c_steps++;
+	update_stats_ocr(ocr, result, output_layer->output[expected - 1]);
     pthread_mutex_unlock(&mutex_char);
 
     //print_outputs(output_layer);
@@ -55,18 +57,18 @@ double start_to_loss(int *input, Layer *input_layer, int expected, double *learn
     return loss;
 }
 
-double browse(int *input, Layer *input_layer, int expected, double *learning_coeff)
+double browse(int *input, Ocr *ocr, int expected)
 {
-    double loss = start_to_loss(input, input_layer, expected, learning_coeff);
+    double loss = start_to_loss(input, ocr, expected);
 
-    Layer *output_layer = get_output_layer(input_layer);
+    Layer *output_layer = get_output_layer(ocr->nn);
     backward(output_layer);
 
     compute_gradients(output_layer);
 
-    update_SGD(output_layer, *learning_coeff);
+    update_SGD(output_layer, *ocr->learning_coeff);
 
-    update_learning_coeff(learning_coeff);
+    update_learning_coeff(*ocr->c_steps, ocr->learning_coeff);
 
     return loss;
 }
@@ -116,8 +118,7 @@ void *train_thread(void *arg)
     void **args = arg;
 
     Image *img = args[0];
-    Layer *ocr = args[1];
-    double *learning_coeff = args[2];
+    Ocr *ocr = args[1];
     int *ans_list = args[3];
 
     int start = *(int *)args[4];
@@ -133,9 +134,9 @@ void *train_thread(void *arg)
 
         int *square = coordinates_to_matrix(img, 28 * i, 0, 28 * (i + 1) - 1, 27);
 
-        start_to_loss(square, ocr, expected, learning_coeff);
+        start_to_loss(square, ocr, expected);
 
-        Layer *output = get_output_layer(ocr);
+        Layer *output = get_output_layer(ocr->nn);
 
         backward(output);
         compute_gradients(output);
@@ -146,10 +147,8 @@ void *train_thread(void *arg)
         {
             average_gradients(outputs, nb_threads);
 
-            update_SGD(outputs[0], *learning_coeff);
-
-            update_learning_coeff(learning_coeff);
-        }
+            update_SGD(outputs[0], *ocr->learning_coeff);
+		 }
 
         pthread_barrier_wait(&barrier_char); // Wait for the SGD update
 
@@ -159,19 +158,33 @@ void *train_thread(void *arg)
     return NULL;
 }
 
-void train(size_t nb_file, Layer *ocr, double *learning_coeff, int nb_threads)
+void train(size_t nb_file, Ocr *ocr, int nb_threads)
 {
+	if (!ocr)
+	{
+		perror("no ocr");
+		return;
+	}
+
+	if (!ocr->nn)
+	{
+		perror("no neural network");
+		return;
+	}
+
     if (nb_threads < 1)
         nb_threads = 1;
 
     if (nb_threads > 10)
         nb_threads = 10;
 
+	double learning_coeff = *ocr->learning_coeff;
+
     char file_img_name[255];
     char file_ans_name[255];
 
-    sprintf(file_img_name, "images/training/ribbon/%ld.png", nb_file);
-    sprintf(file_ans_name, "images/training/ribbon_ans/%ld.txt", nb_file);
+    sprintf(file_img_name, "ocr/images/training/ribbon/%ld.png", nb_file);
+    sprintf(file_ans_name, "ocr/images/training/ribbon_ans/%ld.txt", nb_file);
 
     FILE *ans = fopen(file_ans_name, "r");
 
@@ -194,12 +207,12 @@ void train(size_t nb_file, Layer *ocr, double *learning_coeff, int nb_threads)
 
     pthread_t threads[nb_threads];
 
-    void *args[nb_threads][8];
+    void *args[nb_threads][9];
 
     int starts[nb_threads];
     int ends[nb_threads];
 
-    Layer *ocrs[nb_threads];
+    Ocr *ocrs[nb_threads];
     Layer *outputs[nb_threads];
 
     int step = file_size / nb_threads;
@@ -208,22 +221,18 @@ void train(size_t nb_file, Layer *ocr, double *learning_coeff, int nb_threads)
 
     for (int th = 0; th < nb_threads; th++)
     {
-        ocrs[th] = create_layer_clone(ocr);
-        outputs[th] = get_output_layer(ocrs[th]);
+        ocrs[th] = create_ocr_clone(ocr);
+        outputs[th] = get_output_layer(ocrs[th]->nn);
     }
-
-    int offset = 0;
 
     for (int th = 0; th < nb_threads; th++)
     {
-        starts[th] = offset;
-        ends[th] = offset + step;
-
-        offset = ends[th];
+        starts[th] = th * step;
+        ends[th] = starts[th] + step;
 
         args[th][0] = img;
         args[th][1] = ocrs[th];
-        args[th][2] = learning_coeff;
+		args[th][2] = NULL;
         args[th][3] = ans_list;
         args[th][4] = &starts[th];
         args[th][5] = &ends[th];
@@ -237,17 +246,30 @@ void train(size_t nb_file, Layer *ocr, double *learning_coeff, int nb_threads)
         pthread_join(threads[th], NULL);
 
     for (int th = 0; th < nb_threads; th++)
-        free_layer_clone(ocrs[th]);
+		destroy_ocr_clone(ocrs[th]);
 
     pthread_barrier_destroy(&barrier_char);
 
-    free(ans_list);
+	int remainder_start = step * nb_threads;
+
+	for (int i = remainder_start; i < file_size; i++)
+	{
+		int expected = ans_list[i];
+
+		int *square = coordinates_to_matrix(img, 28 * i, 0, 28 * (i + 1) - 1, 27);
+
+		browse(square, ocr, expected);
+
+		free(square);
+	}
+
+	free(ans_list);
     free_image(img);
 
     fclose(ans);
 }
 
-void launch_ocr(char *file, Layer *ocr, double *learning_coeff)
+void launch_ocr(char *file, Ocr *ocr)
 {
     Image *img = load_png(file);
     process_image(img);
@@ -256,10 +278,10 @@ void launch_ocr(char *file, Layer *ocr, double *learning_coeff)
     {
         if (img->valid_squares[i])
         {
-            put_in_input(img->squares[i], 28, 28, ocr);
-            forward(ocr);
+            put_in_input(img->squares[i], 28, 28, ocr->nn);
+            forward(ocr->nn);
 
-            Layer *output_layer = get_output_layer(ocr);
+            Layer *output_layer = get_output_layer(ocr->nn);
             soft_max(output_layer);
 
             int idx_max_output = index_max_output(output_layer);

@@ -10,7 +10,8 @@
 #include <SDL2/SDL_ttf.h>
 #include <stdio.h>
 
-Frame *create_frame(Frame *parent) {
+Frame *create_frame(Frame *parent)
+{
 	Frame *frame = malloc(sizeof(Frame));
 
 	frame->name = NULL;
@@ -27,6 +28,12 @@ Frame *create_frame(Frame *parent) {
 	frame->cursors = NULL;
 	frame->current_cursor = NULL;
 
+	frame->quit_function = NULL;
+	frame->quit_args = NULL;
+
+	frame->additional_display_function = NULL;
+	frame->additional_display_args = NULL;
+
 	frame->parentframe = parent;
     frame->subframe = NULL;
 
@@ -36,12 +43,14 @@ Frame *create_frame(Frame *parent) {
     return frame;
 }
 
-void clear_current_states(Frame *frame) { // Important when the user clicks to have one interaction at the time
+void clear_current_states(Frame *frame) // Important when the user clicks to have one interaction at the time
+{
 	frame->current_text_area = NULL;
 	frame->current_cursor = NULL;
 }
 
-void clear_frame(Frame *frame) {
+void clear_frame(Frame *frame)
+{
 	free(frame->name);
 	frame->name = NULL;
 
@@ -65,6 +74,16 @@ void clear_frame(Frame *frame) {
 	destroy_cursors(frame->cursors);
 	frame->cursors = NULL;
 
+    frame->quit_function = NULL;
+
+	free(frame->quit_args);
+    frame->quit_args = NULL;
+
+    frame->additional_display_function = NULL;
+
+	free(frame->additional_display_args);
+    frame->additional_display_args = NULL;
+
 	frame->parentframe = NULL;
 
 	clear_current_states(frame);
@@ -73,7 +92,8 @@ void clear_frame(Frame *frame) {
     frame->subframe = NULL;
 }
 
-void destroy_frame(Frame *frame) {
+void destroy_frame(Frame *frame)
+{
 	if (!frame)
 		return;
 	
@@ -82,6 +102,9 @@ void destroy_frame(Frame *frame) {
 	if (frame->image)
 		SDL_DestroyTexture(frame->image);
 
+	if (frame->quit_function)
+		frame->quit_function(frame->quit_args);
+
 	clear_frame(frame);
 
 	destroy_frame(frame->subframe);
@@ -89,7 +112,8 @@ void destroy_frame(Frame *frame) {
 	free(frame);
 }
 
-void display_frame(Frame *frame) {
+void display_frame(Frame *frame) 
+{
 	if (!frame)
 		return;
 
@@ -101,6 +125,9 @@ void display_frame(Frame *frame) {
 	display_cursors(Renderer, frame->cursors);
 
 	render_image(frame);
+
+	if (frame->additional_display_function)
+		frame->additional_display_function(frame->additional_display_args);
 
 	display_frame(frame->subframe);
 }

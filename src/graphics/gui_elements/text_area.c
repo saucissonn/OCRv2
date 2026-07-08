@@ -18,10 +18,14 @@ void lower_text(Text *text, Rectangle *rectangle) {
 TextArea *create_text_area(Text *text, Rectangle *rect) {
     TextArea *res = malloc(sizeof(TextArea));
 
+	text->len_max = (int)(rect->w / text->size_one_element); // Update new limit
     res->text = text;
     res->rect = rect;
 
 	lower_text(res->text, res->rect);
+
+	res->digits = 1; // Default value
+	res->alpha = 1; // Default value
 
     res->next = NULL;
 

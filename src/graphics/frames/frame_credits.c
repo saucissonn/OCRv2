@@ -12,7 +12,8 @@
 #include <SDL2/SDL_ttf.h>
 #include <stdio.h>
 
-static Rectangle *init_rectangles() {
+static Rectangle *init_rectangles()
+{
     Rectangle *rectangles = NULL;
 
     Rectangle *default_background = create_rectangle(0, 0, 1, 1, 0, White);
@@ -21,7 +22,8 @@ static Rectangle *init_rectangles() {
     return rectangles;
 }
 
-static Text *init_texts() {
+static Text *init_texts()
+{
     Text *res = NULL;
 
     Text *txt1 = create_text(
@@ -37,7 +39,8 @@ static Text *init_texts() {
     return res;
 }
 
-static Button *init_buttons(Frame *frame) {
+static Button *init_buttons(Frame *frame)
+{
     Button *res = NULL;
 
 	Button *btn1 = create_options_button(frame);
@@ -47,18 +50,34 @@ static Button *init_buttons(Frame *frame) {
     return res;
 }
 
-static TextArea *init_text_areas() {
+static TextArea *init_text_areas()
+{
 	return NULL;
 }
 
-static Cursor *init_cursors() {
+static Cursor *init_cursors()
+{
 	return NULL;
 }
 
-void init_frame_credits(Frame *frame) {
-	frame->rectangles = init_rectangles();
-	frame->texts = init_texts();
-	frame->buttons = init_buttons(frame);	
-	frame->text_areas = init_text_areas();
-	frame->cursors = init_cursors();
+static void quit_function(void **data)
+{
+    Frame *frame = data[0];
+
+    clear_frame(frame);
 }
+
+void init_frame_credits(Frame *frame)
+{
+    frame->rectangles = init_rectangles();
+    frame->texts = init_texts();
+    frame->buttons = init_buttons(frame);
+    frame->text_areas = init_text_areas();
+    frame->cursors = init_cursors();
+
+    frame->quit_function = quit_function;
+    frame->quit_args = malloc(sizeof(void *) * 2);
+    frame->quit_args[0] = frame;
+    frame->quit_args[1] = NULL;
+}
+

@@ -55,10 +55,24 @@ static Cursor *init_cursors() {
 	return NULL;
 }
 
-void init_frame_tutorial(Frame *frame) {
-	frame->rectangles = init_rectangles();
-	frame->texts = init_texts();
-	frame->buttons = init_buttons(frame);	
-	frame->text_areas = init_text_areas();
-	frame->cursors = init_cursors();
+static void quit_function(void **data)
+{
+    Frame *frame = data[0];
+
+    clear_frame(frame);
 }
+
+void init_frame_tutorial(Frame *frame)
+{
+    frame->rectangles = init_rectangles();
+    frame->texts = init_texts();
+    frame->buttons = init_buttons(frame);
+    frame->text_areas = init_text_areas();
+    frame->cursors = init_cursors();
+
+    frame->quit_function = quit_function;
+    frame->quit_args = malloc(sizeof(void *) * 2);
+    frame->quit_args[0] = frame;
+    frame->quit_args[1] = NULL;
+}
+

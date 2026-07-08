@@ -1,5 +1,5 @@
 #include "nn.h"
-#include "../useful/globals.h"
+#include "../useful/globals_ocr.h"
 #include "../process_img/image.h"
 #include "../useful/matrix.h"
 
@@ -21,7 +21,7 @@ void relu(Layer *l)
     }
 }
 
-void update_learning_coeff(double *learning_coeff)
+void update_learning_coeff(int c_steps, double *learning_coeff)
 {
     if (c_steps > 10000)
 	{

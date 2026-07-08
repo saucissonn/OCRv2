@@ -7,6 +7,10 @@
 typedef struct TextArea {
 	Text *text;
 	Rectangle *rect;
+
+	int digits; // Can contains digits
+	int alpha;	// Can contains alpha
+
 	struct TextArea *next;
 } TextArea;
 

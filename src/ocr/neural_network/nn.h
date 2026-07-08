@@ -9,7 +9,7 @@
 
 void relu(Layer *l);
 
-void update_learning_coeff(double *learning_coeff);
+void update_learning_coeff(int c_steps, double *learning_coeff);
 void soft_max(Layer *l);
 void sigmoid(Layer *l);
 

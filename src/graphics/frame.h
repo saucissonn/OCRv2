@@ -2,6 +2,7 @@
 #define APP_H
 
 #include <SDL2/SDL.h>
+
 #include "gui_elements/rectangle.h"
 #include "gui_elements/text.h"
 #include "gui_elements/text_area.h"
@@ -24,6 +25,12 @@ typedef struct Frame {
 	TextArea *current_text_area;
 	Cursor *cursors;
 	Cursor *current_cursor;
+
+    void (*quit_function)(void **);
+    void **quit_args;
+
+    void (*additional_display_function)(void **);
+    void **additional_display_args;
 
 	struct Frame *parentframe;
 	struct Frame *subframe;

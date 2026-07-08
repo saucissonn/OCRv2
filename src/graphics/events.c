@@ -2,6 +2,7 @@
 #include <SDL2/SDL_ttf.h>
 #include <stdlib.h>
 #include <stdio.h>
+#include <ctype.h>
 
 #include "globals.h"
 #include "gui_elements/button.h"
@@ -54,10 +55,15 @@ int handle_event_mouse(Frame *frame) {
 			}
 
 			frame->current_text_area = collision_text_areas(mouseX, mouseY, frame->text_areas);
-			if (frame->current_text_area) {
+			if (frame->current_text_area)
+			{
+				SDL_StartTextInput();
+
 				handle_event_text_area(frame->current_text_area);
 				return 1;
 			}
+
+			SDL_StopTextInput();
 
 			frame->current_cursor = collision_cursors(mouseX, mouseY, frame->cursors);
 			if (frame->current_cursor) {
@@ -97,7 +103,10 @@ int handle_events(SDL_Event event, Frame *frame) {
 
 			case SDL_TEXTINPUT: // Press a symbol
 				if (frame->current_text_area) {
-					add_char(Renderer, frame->current_text_area->text, event.text.text[0]);
+					char c = event.text.text[0];
+					if (frame->current_text_area->digits && isdigit(c) ||
+						frame->current_text_area->alpha && isalpha(c))
+						add_char(Renderer, frame->current_text_area->text, event.text.text[0]);
 				}
 				printf("char is: %s\n", event.text.text);
 				break;
