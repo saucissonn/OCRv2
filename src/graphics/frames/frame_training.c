@@ -12,6 +12,7 @@
 #include "../../ocr/neural_network/save.h"
 #include "../../ocr/neural_network/train.h"
 #include "../../ocr/process_img/fs.h"
+#include "../update.h"
 
 #include <pthread.h>
 #include <time.h>
@@ -20,7 +21,9 @@
 #include <stdio.h>
 
 static void call_thread_ocr(void **data);
+static void reset_frame_stats(void **data);
 
+// Setup frames layout
 static Rectangle *init_rectangles() {
     Rectangle *rectangles = NULL;
 
@@ -87,6 +90,16 @@ static Button *init_buttons(Frame *frame) {
 
 	res = add_button(res, btn2);
 
+    Text *text3 = create_text("Stop & not Save", 0, 0, FONT_SIZE4, White);
+    Rectangle *rect3 = create_rectangle(DEFAULT_SPACE_W, 0.7, 0.25, 0.1, DEFAULT_BORDER_W, Red);
+    Button *btn3 = create_button(1, text3, rect3);
+    btn3->function = reset_frame_stats;
+    btn3->args = malloc(sizeof(void *) * 2);
+    btn3->args[0] = frame;
+    btn3->args[1] = NULL;
+
+    res = add_button(res, btn3);
+
     return res;
 }
 
@@ -130,17 +143,36 @@ static Cursor *init_cursors() {
 	return NULL;
 }
 
+// End of setup frames layout
+
+// Start of setup additional features
+
 static void quit_function(void **data)
 {
     Frame *frame = data[0];
 
-	destroy_frame(frame->additional_display_args[0]); // Frame stats
-    clear_frame(frame);
+	void **data2 = malloc(sizeof(void *) * 2);
+	data2[0] = frame;
+	data2[1] = NULL;
+
+	reset_frame_stats(data2);
+
+	// Because reset delete then create the frame stats so we delete it once again
+    destroy_frame(frame->additional_display_args[0]); // Frame stats
+    free(frame->additional_display_args);
+
+	free(data2);
+
+	frame->additional_display_args = NULL;
+
+	clear_frame(frame);
 }
 
 static void additional_display_function(void **data)
 {
     Frame *frame_stats = data[0];
+	
+	resize_texts(Renderer, frame_stats->texts); // Lazy but working
 
     int c_steps;
     int longest_streak;
@@ -148,32 +180,28 @@ static void additional_display_function(void **data)
     double average_guesses;
     double average_certainty;
 
-    pthread_mutex_lock(&mutex_general_ocr);
+    pthread_mutex_lock(&mutex_global_ocr);
 
     if (!global_ocr)
     {
-        pthread_mutex_unlock(&mutex_general_ocr);
+        pthread_mutex_unlock(&mutex_global_ocr);
         display_frame(frame_stats);
         return;
     }
-
 	
 	pthread_mutex_lock(&mutex_char);
+
     c_steps = *global_ocr->c_steps;
     longest_streak = *global_ocr->longest_streak;
     current_streak = *global_ocr->current_streak;
 
-    average_guesses = c_steps
-        ? *global_ocr->sum_guesses / (double)c_steps
-        : 0;
+	pthread_mutex_unlock(&mutex_global_ocr);
 
-    average_certainty = c_steps
-        ? *global_ocr->sum_certainty / (double)c_steps
-        : 0;
+    average_guesses = c_steps ? *global_ocr->sum_guesses / (double)c_steps : 0;
 
+    average_certainty = c_steps ? *global_ocr->sum_certainty / (double)c_steps : 0;
 	
 	pthread_mutex_unlock(&mutex_char);
-    pthread_mutex_unlock(&mutex_general_ocr);
 
     Text *curr = frame_stats->texts->next;
 
@@ -234,8 +262,7 @@ static Text *init_texts_additional_display()
     return res;
 }
 
-
-static void init_additional_display(Frame *frame)
+static void init_additional_display(Frame *frame) // Need to display additional features for stats
 {
     frame->additional_display_function = additional_display_function;
     frame->additional_display_args = malloc(sizeof(void *) * 2);
@@ -249,7 +276,42 @@ static void init_additional_display(Frame *frame)
 	frame->additional_display_args[1] = NULL;
 }
 
-static void *setup_and_train_ocr(void *data)
+static void reset_frame_stats(void **data) // Also stops OCR
+{
+    Frame *frame = data[0];
+
+    pthread_mutex_lock(&mutex_global_ocr);
+
+    if (!global_ocr)
+    {
+        pthread_mutex_unlock(&mutex_global_ocr);
+        return;
+    }
+
+    //int nb_threads = global_ocr->nb_threads;
+
+    int ret = pthread_barrier_init(&barrier_global_ocr_stop1, NULL, 2);
+
+    if (ret)
+    {
+        pthread_mutex_unlock(&mutex_global_ocr);
+        return;
+    }
+
+    global_ocr->stop_flag = 1;
+
+    pthread_mutex_unlock(&mutex_global_ocr);
+
+    pthread_barrier_wait(&barrier_global_ocr_stop1);
+
+    destroy_frame(frame->additional_display_args[0]); // Frame stats
+    free(frame->additional_display_args);
+    init_additional_display(frame);
+
+    printf("reset stats and clear OCR\n");
+}
+
+static void *setup_and_train_ocr(void *data) // Needs to be called with pthread_create()
 {
     void **args = data;
 
@@ -257,13 +319,15 @@ static void *setup_and_train_ocr(void *data)
 	int *size_layers = args[1];
 	int nb_threads = *(int *)args[2];
 	int c_steps_local = *(int *)args[3];
+	char *save_file = args[4];
 
 	if (nb_threads < 1)
 		nb_threads = 1;
-	if (nb_threads > 10)
-		nb_threads = 10;
+	if (nb_threads > NB_THREADS_MAX)
+		nb_threads = NB_THREADS_MAX;
 
 	global_ocr = create_ocr(0.01, nb_layers, size_layers);
+	global_ocr->nb_threads = nb_threads;
 
 	pthread_barrier_init(&barrier_char, NULL, nb_threads);
 
@@ -273,12 +337,42 @@ static void *setup_and_train_ocr(void *data)
     {
         size_t nb_file = random_file("ocr/images/training/ribbon");
 
+		pthread_mutex_lock(&mutex_global_ocr);
+
+		if (global_ocr->stop_flag)
+		{
+			pthread_mutex_unlock(&mutex_global_ocr);
+
+			free(args[0]);
+			free(args[2]);
+			free(args[3]);
+			free(args);
+
+			pthread_barrier_wait(&barrier_global_ocr_stop1);
+
+			pthread_mutex_lock(&mutex_global_ocr);
+
+			destroy_ocr(global_ocr);
+			global_ocr = NULL;
+
+			pthread_mutex_unlock(&mutex_global_ocr);
+
+			pthread_barrier_destroy(&barrier_char);
+			pthread_barrier_destroy(&barrier_global_ocr_stop1);
+
+			return NULL;
+		}
+
+		pthread_mutex_unlock(&mutex_global_ocr);
+
         train(nb_file, global_ocr, nb_threads);
     }
 
-    save_ocr("saves/save.ocr", global_ocr);
+	char buff[255];
+	snprintf(buff, sizeof(buff), "saves/%s.ocr", save_file);
+    save_ocr(buff, global_ocr);
 
-	pthread_mutex_lock(&mutex_general_ocr);
+	pthread_mutex_lock(&mutex_global_ocr);
 
     destroy_ocr(global_ocr);
 	global_ocr = NULL;
@@ -288,16 +382,16 @@ static void *setup_and_train_ocr(void *data)
     free(args[3]);
     free(args);
 
-	pthread_mutex_unlock(&mutex_general_ocr);
+	pthread_mutex_unlock(&mutex_global_ocr);
 
 	pthread_barrier_destroy(&barrier_char);
 }
 
-static void call_thread_ocr(void **data)
+static void call_thread_ocr(void **data) // Calls setup_and_train_ocr()
 {
 	Frame *frame = data[0];	
 
-	void **data2 = malloc(sizeof(void *) * 5);
+	void **data2 = malloc(sizeof(void *) * 6); // args of the function called
 
 	TextArea *curr = frame->text_areas;
 	
@@ -310,7 +404,7 @@ static void call_thread_ocr(void **data)
         curr = curr->next;
     }
 
-	if (nb_layers < 3)
+	if (nb_layers < 3) // OCR is invalid
 	{
 		free(data2);
 		printf("No hidden layers\n");
@@ -347,17 +441,20 @@ static void call_thread_ocr(void **data)
 	int *addr_steps = malloc(sizeof(int));
 	*addr_steps = atoi(curr->text->text);
 
+	curr = curr->next;
+	
 	data2[0] = addr_nb_layers;
 	data2[1] = size_layers;
 	data2[2] = addr_nb_threads;
-	data2[3] = addr_steps; // Steps
-	data2[4] = NULL;
+	data2[3] = addr_steps;
+	data2[4] = curr->text->text;
+	data2[5] = NULL;
 
     pthread_t thread_ocr;
 
     pthread_create(&thread_ocr, NULL, setup_and_train_ocr, data2);
 
-	pthread_detach(thread_ocr);
+	pthread_detach(thread_ocr); // to not wait for the threads to end
 }
 
 void init_frame_training(Frame *frame)

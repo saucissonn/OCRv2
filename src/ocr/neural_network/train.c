@@ -14,9 +14,16 @@ double start_to_loss(int *input, Ocr *ocr, int expected)
 {
     if (!input)
     {
-        printf("no input\n");
+        printf("Error: start_to_loss, no input\n");
         return 0;
     }
+
+	if (!ocr)
+	{
+		printf("Error: start_to_loss, no OCR\n");
+		pthread_mutex_unlock(&mutex_global_ocr);
+		return 0;
+	}
 
 	Layer *input_layer = ocr->nn;
 
@@ -175,8 +182,8 @@ void train(size_t nb_file, Ocr *ocr, int nb_threads)
     if (nb_threads < 1)
         nb_threads = 1;
 
-    if (nb_threads > 10)
-        nb_threads = 10;
+    if (nb_threads > NB_THREADS_MAX)
+        nb_threads = NB_THREADS_MAX;
 
 	double learning_coeff = *ocr->learning_coeff;
 

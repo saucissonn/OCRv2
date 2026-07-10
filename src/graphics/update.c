@@ -231,7 +231,12 @@ void update_all(Frame *frame) {
 	DELTA = DELTA_W > DELTA_H ? DELTA_H : DELTA_W;
 
 	if (old_w != WIN_W || old_h != WIN_H) {
-		resize_all(frame);
+		Frame *curr_resize = frame;
+
+		while (curr_resize) {
+			resize_all(curr_resize);
+			curr_resize = curr_resize->subframe;
+		}
 	}
 
     int mouseX, mouseY;

@@ -4,6 +4,7 @@
 #include "graphics/update.h"
 #include "graphics/utils.h"
 #include "graphics/globals.h"
+#include "ocr/useful/globals_ocr.h"
 
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_image.h>
@@ -13,8 +14,10 @@
 int main(void)
 {
 	srand(time(NULL));
-	
+
 	init_global_variables();
+
+	printf("nb threads = %d\n", NB_THREADS_MAX);
 
 	Frame *frame = create_frame(NULL);
 	init_frame_ocr(frame);

@@ -5,47 +5,16 @@
 #include "../gui_elements/text_area.h"
 #include "../image.h"
 #include "../globals.h"
+#include "../update.h"
 #include "common_elements.h"
 
 #include <SDL2/SDL_image.h>
 #include <SDL2/SDL_ttf.h>
 #include <stdio.h>
 
-static void private_init_frame_ocr(void **data) {
-    printf("Swapped\n");
-    Frame *frame = data[0];
-
-    clear_frame(frame);
-    init_frame_ocr(frame);	
-}
-
-static void private_init_frame_training(void **data) {
-    printf("Swapped\n");
-    Frame *frame = data[0];
-
-    clear_frame(frame);
-    init_frame_training(frame);     
-}
-
-static void private_init_frame_tutorial(void **data) {
-    printf("Swapped\n");
-    Frame *frame = data[0];
-
-    clear_frame(frame);
-    init_frame_tutorial(frame);  
-}
-
-static void private_init_frame_credits(void **data) {
-    printf("Swapped\n");
-    Frame *frame = data[0];
-
-    clear_frame(frame);
-    init_frame_credits(frame);
-}
-
 static void swap_frame(void **data)
 {
-	printf("Swapped");
+	printf("Swapped\n");
 
 	Frame *frame = data[0];
 	void (*function)(Frame *) = data[1];
@@ -116,6 +85,10 @@ void option_button_function(void **data)
 	curr = curr->next;
 
     frame2->buttons = sub_buttons;
+
+	resize_buttons(Renderer, frame2->buttons);
+
+	frame->subframe = frame2;
 }
 
 Button *create_options_button(Frame *frame)

@@ -16,6 +16,8 @@ typedef struct Ocr
 	int *current_streak;
 	double *sum_guesses;
 	double *sum_certainty;
+	int nb_threads;
+	int stop_flag;
 
     Layer *nn;
 } Ocr;

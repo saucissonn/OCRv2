@@ -1,9 +1,11 @@
 #include "gui_elements/text.h"
 #include "utils.h"
 #include "globals.h"
+#include "../ocr/useful/globals_ocr.h"
 
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_image.h>
+#include <unistd.h>
 
 int collision_rect(int x, int y, SDL_Rect rect)
 {
@@ -13,8 +15,9 @@ int collision_rect(int x, int y, SDL_Rect rect)
             y < rect.y + rect.h);
 }
 
-void init_global_variables() {
-    // Define global variables
+void init_global_variables()
+{
+    // Define global variables for graphics
     if (SDL_Init(SDL_INIT_VIDEO) != 0)
     {
         fprintf(stderr, "SDL_Init: %s\n", SDL_GetError());
@@ -45,22 +48,21 @@ void init_global_variables() {
         WIN_H,
         SDL_WINDOW_SHOWN | SDL_WINDOW_RESIZABLE);
 
-    if (!Window) {
+    if (!Window)
         return;
-    }
 
     SDL_SetWindowMinimumSize(Window, WINDOW_MIN_W, WINDOW_MIN_H);
 
-    Renderer = SDL_CreateRenderer(
-        Window,
-        -1,
-        SDL_RENDERER_SOFTWARE);
+    Renderer = SDL_CreateRenderer(Window, -1, SDL_RENDERER_SOFTWARE);
 
-    if (!Renderer) {
+    if (!Renderer)
         return;
-    }
 
-    if (!font_init(Renderer, "graphics/DejaVuSans.ttf")) {
+    if (!font_init(Renderer, "graphics/DejaVuSans.ttf"))
         fprintf(stderr, "Impossible to load the font\n");
-    }
+
+	// Define global variables for the OCR
+	NB_THREADS_MAX = sysconf(_SC_NPROCESSORS_ONLN) / 2;
+	if (NB_THREADS_MAX < 1)
+		NB_THREADS_MAX = 1;
 }

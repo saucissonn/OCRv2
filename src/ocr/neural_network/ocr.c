@@ -34,6 +34,9 @@ Ocr *create_ocr(double learning_coeff, int nb_layers, int *size_layers)
 	*sum_certainty = 0;
 	res->sum_certainty = sum_certainty;
 
+	res->nb_threads = 0; // Default
+	res->stop_flag = 0; // Default
+
 	Layer *nn = create_layer("input", size_layers[0], size_layers[0]);
 	Layer *curr = create_layer("hidden", size_layers[0], size_layers[1]);
 	nn->next = curr;
