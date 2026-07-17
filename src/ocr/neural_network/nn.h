@@ -13,9 +13,9 @@ void update_learning_coeff(int c_steps, double *learning_coeff);
 void soft_max(Layer *l);
 void sigmoid(Layer *l);
 
-void forward(Layer *l);
-void backward(Layer *l);
-void compute_gradients(Layer *l);
+void forward(Layer *l, int training);
+void backward(Layer *l, int training);
+void compute_gradients(Layer *l, int training);
 void update_SGD(Layer *l, double learning_coeff);
 
 void print_outputs(Layer *l);

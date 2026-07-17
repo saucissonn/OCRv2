@@ -1,5 +1,5 @@
-#ifndef IMAGE_H
-#define IMAGE_H
+#ifndef IMAGE_GRAPHICS_H
+#define IMAGE_GRAPHICS_H
 
 #include "frame.h"
 

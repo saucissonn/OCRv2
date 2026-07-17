@@ -2,6 +2,7 @@
 #define OCR_H
 
 #include "layer.h"
+#include "../process_img/image.h"
 
 typedef struct Ocr
 {
@@ -15,10 +16,14 @@ typedef struct Ocr
 	int *longest_streak;
 	int *current_streak;
 	double *sum_guesses;
+	double *sum_guesses_100;
 	double *sum_certainty;
+	double *sum_certainty_100;
 	int nb_threads;
 	int stop_flag;
 
+	int training; // State
+	
     Layer *nn;
 } Ocr;
 
@@ -31,5 +36,7 @@ void destroy_ocr(Ocr *ocr);
 void destroy_ocr_clone(Ocr *ocr);
 
 void update_stats_ocr(Ocr *ocr, int current_guess, double certainty);
+
+int *launch_ocr(Image *img, Ocr *ocr);
 
 #endif

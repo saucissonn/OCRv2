@@ -156,8 +156,10 @@ int *detect_squares(Image *img, float size_line)
 	int *horizontals = detect_lines(img, size_line, 0);
 	int *verticals = detect_lines(img, size_line, 1);
 
-	if (horizontals[0] == -1 || verticals[0] == -1)
+	if (!horizontals || !verticals || horizontals[0] == -1 || verticals[0] == -1)
 	{
+		free(horizontals);
+		free(verticals);
 		return NULL;
 	}
 
@@ -183,7 +185,7 @@ int *detect_squares(Image *img, float size_line)
 			}
 		}
 	}
-	else
+	else if (nb_lines == 8)
 	{
 		int last_hor = 0;
 		for (int i = 0; horizontals[i] != -1; i+=4)
@@ -222,7 +224,15 @@ int *detect_squares(Image *img, float size_line)
                 count++;
             }
         }
+	}
+	else
+	{
+		free(horizontals);
+		free(verticals);
 
+		free(squares);
+
+		return NULL;
 	}
 
 	free(horizontals);
@@ -231,55 +241,129 @@ int *detect_squares(Image *img, float size_line)
 	return squares;
 }
 
+int *get_bbox(int *matrix, int w, int h, int *x0, int *y0, int *x1, int *y1)
+{
+	*x0 = w;
+	*y0 = h;
+	*x1 = -1;
+	*y1 = -1;
+
+	for (int y = 0; y < h; y++)
+	{
+		for (int x = 0; x < w; x++)
+		{
+			if (matrix[y * w + x])
+			{
+				if (x < *x0) *x0 = x;
+				if (x > *x1) *x1 = x;
+				if (y < *y0) *y0 = y;
+				if (y > *y1) *y1 = y;
+			}
+		}
+	}
+
+	// No pixel found
+	if (*x1 == -1)
+	{
+		return NULL;
+	}
+
+	int bw = *x1 - *x0 + 1;
+	int bh = *y1 - *y0 + 1;
+
+	int *bbox = malloc(sizeof(int) * bw * bh);
+	if (!bbox)
+		return NULL;
+
+	for (int y = 0; y < bh; y++)
+	{
+		for (int x = 0; x < bw; x++)
+		{
+			bbox[y * bw + x] =
+				matrix[(*y0 + y) * w + (*x0 + x)];
+		}
+	}
+
+	return bbox;
+}
+
 int **get_squares_sudoku(Image *img)
 {
     int *squares_coordinates = detect_squares(img, 0.3);
+	if (!squares_coordinates)
+	{
+		return NULL;
+	}
+
     int **squares = malloc(81 * sizeof(int *));
 
     for (int i = 0; i < 81; i++)
     {
-
+/*
         printf("group %d : x0 = %d, y0 = %d, x1 = %d, y1 = %d\n",
 		        i, squares_coordinates[4 * i + 0], squares_coordinates[4 * i + 1],
 		        squares_coordinates[4 * i + 2], squares_coordinates[4 * i + 3]);
+*/
+		int border_w = 3;
 
-        squares[i] = coordinates_to_matrix(img,
-                                            squares_coordinates[4 * i + 0],
-                                            squares_coordinates[4 * i + 1],
-                                            squares_coordinates[4 * i + 2],
-                                            squares_coordinates[4 * i + 3]);
-        int *save = squares[i];
+		squares[i] = coordinates_to_matrix(img,
+											squares_coordinates[4 * i + 0] + border_w,
+											squares_coordinates[4 * i + 1] + border_w,
+											squares_coordinates[4 * i + 2] - border_w,
+											squares_coordinates[4 * i + 3] - border_w);
+		int *save = squares[i];
 
-        squares[i] = matrix_to_28x28(squares[i],
-                                    (squares_coordinates[4 * i + 2] - squares_coordinates[4 * i + 0] + 1),
-                                    (squares_coordinates[4 * i + 3] - squares_coordinates[4 * i + 1] + 1));
+		int x0 = 0;
+		int y0 = 0;
+        int x1 = 0;
+        int y1 = 0;
+
+		int *bbox = get_bbox(squares[i],
+								squares_coordinates[4 * i + 2] - squares_coordinates[4 * i + 0] + 1 - 2 * border_w,
+								squares_coordinates[4 * i + 3] - squares_coordinates[4 * i + 1] + 1 - 2 * border_w,
+								&x0, &y0, &x1, &y1);
+
+		if (!bbox)
+		{
+			squares[i] = matrix_to_28x28(squares[i],
+                                squares_coordinates[4 * i + 2] - squares_coordinates[4 * i + 0] + 1 - 2 * border_w,
+                                squares_coordinates[4 * i + 3] - squares_coordinates[4 * i + 1] + 1 - 2 * border_w);
+		}
+
+		else
+			squares[i] = matrix_to_28x28(bbox, (x1 - x0 + 1), (y1 - y0 + 1));
 
         free(save);
-        //print_matrix(squares[i], 28, 28);
+		free(bbox);
+		//print_matrix(squares[i], 28, 28);
     }
 
 	free(squares_coordinates);
+	//img->squares_coordinates = squares_coordinates;
 
 	return squares;
 }
 
 int *get_valid_squares(int **squares)
 {
+	if (!squares) return NULL;
+
 	int *res = malloc(81 * sizeof(int));
 
 	for (int i = 0; i < 81; i++)
     {
-        int sum = 0;
-        for (int y = 0; y < 28; y++)
+        double sum = 0;
+		int border_w = 3;
+        for (int y = border_w; y < 28 - border_w; y++)
         {
-            for (int x = 0; x < 28; x++)
+            for (int x = border_w; x < 28 - border_w; x++)
             {
                 if (squares[i][y * 28 + x])
                     sum++;
             }
         }
 
-        if ((double)(sum / 28 * 28) > 0.05)
+        if ((sum / ((28. - border_w) * (28. - border_w))) > 0.03)
 			res[i] = 1;
         else
 			res[i] = 0;

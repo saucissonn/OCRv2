@@ -34,14 +34,30 @@ int *matrix_to_28x28(int *matrix, int w, int h)
     if (!out)
         return NULL;
 
-    for (int y = 0; y < 28; y++)
-    {
-        int src_y = y * h / 28;
+    for (int i = 0; i < 28 * 28; i++)
+        out[i] = 0;
 
-        for (int x = 0; x < 28; x++)
+    float scale = (28.0f / w < 28.0f / h) ? 28.0f / w : 28.0f / h;
+
+    int new_w = (int)(w * scale + 0.5f);
+    int new_h = (int)(h * scale + 0.5f);
+
+    int offset_x = (28 - new_w) / 2;
+    int offset_y = (28 - new_h) / 2;
+
+    for (int y = 0; y < new_h; y++)
+    {
+        int src_y = (int)(y / scale);
+
+        for (int x = 0; x < new_w; x++)
         {
-            int src_x = x * w / 28;
-            out[y * 28 + x] = matrix[src_y * w + src_x];
+            int src_x = (int)(x / scale);
+
+            if (src_x >= w) src_x = w - 1;
+            if (src_y >= h) src_y = h - 1;
+
+            out[(y + offset_y) * 28 + (x + offset_x)] =
+                matrix[src_y * w + src_x];
         }
     }
 
@@ -53,13 +69,26 @@ void print_matrix(int *matrix, int w, int h)
     if (!matrix || w <= 0 || h <= 0)
         return;
 
-    for (int y = 0; y < 28; y++)
+    for (int y = 0; y < h; y++)
     {
-        for (int x = 0; x < 28; x++)
+        for (int x = 0; x < w; x++)
         {
 			char symbol = (matrix[y * w + x] == 1) ? '#' : '.';
 			printf("%c", symbol);
 		}
 		printf("\n");
+    }
+}
+
+void print_matrix_values(int *matrix, int w, int h)
+{
+    if (!matrix || w <= 0 || h <= 0)
+        return;
+
+    for (int y = 0; y < h; y++)
+    {
+        for (int x = 0; x < w; x++)
+            printf("%d", matrix[y * w + x]);
+        printf("\n");
     }
 }

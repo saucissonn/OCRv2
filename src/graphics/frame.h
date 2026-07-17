@@ -1,5 +1,5 @@
-#ifndef APP_H
-#define APP_H
+#ifndef FRAME_H
+#define FRAME_H
 
 #include <SDL2/SDL.h>
 
@@ -7,6 +7,7 @@
 #include "gui_elements/text.h"
 #include "gui_elements/text_area.h"
 #include "gui_elements/cursor.h"
+#include "../ocr/process_img/image.h"
 
 typedef struct Button Button;
 typedef struct Cursor Cursor;
@@ -14,10 +15,14 @@ typedef struct Cursor Cursor;
 typedef struct Frame {
 	char *name;
 
-    SDL_Texture *image;
-    int image_w;
+	Image *image;
+    SDL_Texture *texture; // Texture of the image
+    int image_w; // w and h of the texture
     int image_h;
 
+	int drop_zone; // 1 or 0
+
+	// UI of the frame
 	Rectangle *rectangles;
 	Text *texts;
 	Button *buttons;
@@ -26,10 +31,11 @@ typedef struct Frame {
 	Cursor *cursors;
 	Cursor *current_cursor;
 
-    void (*quit_function)(void **);
+	// Special functions
+    void (*quit_function)(void **); // Called at the exit of the frame
     void **quit_args;
 
-    void (*additional_display_function)(void **);
+    void (*additional_display_function)(void **); // To add dynamic / complex display
     void **additional_display_args;
 
 	struct Frame *parentframe;

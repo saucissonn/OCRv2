@@ -5,7 +5,7 @@
 #include "../gui_elements/text.h"
 #include "../gui_elements/button.h"
 #include "../gui_elements/text_area.h"
-#include "../image.h"
+#include "../image_graphics.h"
 #include "../globals.h"
 #include "frames.h"
 #include "common_elements.h"

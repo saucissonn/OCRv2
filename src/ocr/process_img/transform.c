@@ -1,10 +1,12 @@
 #include "transform.h"
+#include "../../graphics/globals.h"
 
 #include <stdlib.h>
 #include <math.h>
 #include <stdio.h>
+#include <SDL2/SDL_ttf.h>
 
-Image *rotate_image(Image *src, double angle)
+void rotate_image(Image *src, double angle)
 {
     double rad = angle * M_PI / 180.0;
 
@@ -17,25 +19,21 @@ Image *rotate_image(Image *src, double angle)
     int new_height =
         (int)(fabs(src->width * s) + fabs(src->height * c) + 0.5);
 
-    Image *dst = malloc(sizeof(Image));
+    uint8_t *new_pixels = malloc(new_width * new_height);
+    Pixel *new_raw_pixels = malloc(sizeof(Pixel) * new_width * new_height);
 
-    if (dst == NULL)
-        return NULL;
-
-    dst->width = new_width;
-    dst->height = new_height;
-
-    dst->pixels = malloc(new_width * new_height);
-
-    if (dst->pixels == NULL)
+    if (!new_pixels || !new_raw_pixels)
     {
-        free(dst);
-        return NULL;
+        free(new_pixels);
+        free(new_raw_pixels);
+        return;
     }
 
-    // white background
     for (int i = 0; i < new_width * new_height; i++)
-        dst->pixels[i] = 0;
+    {
+        new_pixels[i] = 0;
+        new_raw_pixels[i] = (Pixel){255, 255, 255, 255};
+    }
 
     double cx_src = src->width / 2.0;
     double cy_src = src->height / 2.0;
@@ -56,20 +54,26 @@ Image *rotate_image(Image *src, double angle)
             int ix = (int)(sx + 0.5);
             int iy = (int)(sy + 0.5);
 
-            if (ix >= 0 &&
-                iy >= 0 &&
-                ix < src->width &&
-                iy < src->height)
+            if (ix >= 0 && iy >= 0 &&
+                ix < src->width && iy < src->height)
             {
-                set_pixel(dst,
-                          x,
-                          y,
-                          get_pixel(src, ix, iy));
+                new_pixels[y * new_width + x] =
+                    get_pixel(src, ix, iy);
+
+                if (src->raw_pixels)
+                    new_raw_pixels[y * new_width + x] =
+                        src->raw_pixels[iy * src->width + ix];
             }
         }
     }
 
-    return dst;
+    free(src->pixels);
+    free(src->raw_pixels);
+
+    src->pixels = new_pixels;
+    src->raw_pixels = new_raw_pixels;
+    src->width = new_width;
+    src->height = new_height;
 }
 
 Image *crop_white(Image *src)
@@ -265,3 +269,61 @@ double hough_angle(Image *img, double precision)
     return best;
 }
 
+void modify_sudoku_image(Image *img, int *empty_sudoku, int *solved_sudoku)
+{
+	if (!img)
+	    return;
+
+	if (!img->squares_coordinates)
+	{
+	    printf("No squares coordinates\n");
+	    return;
+	}
+
+	SDL_Texture *texture = image_to_texture(Renderer, img);
+
+	int size = (img->squares_coordinates[3] - img->squares_coordinates[1]);
+
+	TTF_Font *font = TTF_OpenFont("graphics/DejaVuSans.ttf", size);
+
+	uint8_t r, g, b, a;
+
+	for (int i = 0; i < 81; i++)
+	{
+		if (empty_sudoku[i] != 0)
+			continue;
+
+		char buff[2];
+		buff[0] = solved_sudoku[i] + '0';
+		buff[1] = '\0';
+
+		SDL_Surface *surface = TTF_RenderUTF8_Blended(font, buff, Black);
+
+		Uint32 *pixels = (Uint32 *)surface->pixels;
+
+		int start_x = img->squares_coordinates[4 * i + 0];
+		int start_y = img->squares_coordinates[4 * i + 1];
+
+		for (int y = 0; y < surface->h; y++)
+		{
+			for (int x = 0; x < surface->w; x++)
+			{
+				Uint32 *row = (Uint32 *)((Uint8 *)surface->pixels + y * surface->pitch);
+				Uint32 pixel = row[x];
+				SDL_GetRGBA(pixel, surface->format, &r, &g, &b, &a);
+
+				if (a == 0)
+					continue;
+
+				img->raw_pixels[(start_y + y) * img->width + start_x + x].r = r;
+                img->raw_pixels[(start_y + y) * img->width + start_x + x].g = g;
+                img->raw_pixels[(start_y + y) * img->width + start_x + x].b = b;
+				img->raw_pixels[(start_y + y) * img->width + start_x + x].a = a;
+			}
+		}
+
+		SDL_FreeSurface(surface);	
+	}
+
+	TTF_CloseFont(font);
+}

@@ -3,10 +3,12 @@
 
 #include "image.h"
 
-Image *rotate_image(Image *src, double angle);
+void rotate_image(Image *src, double angle);
 
 Image *crop_white(Image *src);
 
 double hough_angle(Image *img, double precision);
+
+void modify_sudoku_image(Image *img, int *empty_sudoku, int *solved_sudoku);
 
 #endif

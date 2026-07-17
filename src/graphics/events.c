@@ -1,14 +1,13 @@
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_ttf.h>
-#include <stdlib.h>
 #include <stdio.h>
 #include <ctype.h>
 
 #include "globals.h"
 #include "gui_elements/button.h"
 #include "frame.h"
-#include "image.h"
-#include "gui_elements/text_area.h"
+#include "image_graphics.h"
+#include "../ocr/process_img/image.h"
 
 void handle_event_button(Button *button) {
 	if (button->interactible && button->function) {
@@ -93,9 +92,22 @@ int handle_events(SDL_Event event, Frame *frame) {
 			{
 				char *path = event.drop.file;
 
-				printf("Fichier : %s\n", path);
+				if (frame->drop_zone == 0)
+				{
+					SDL_free(path); // We have to free it even if no file is displayed
+					break;
+				}
 
-				load_image(frame, path);
+				printf("File: %s\n", path);
+				Image *img = load_png(path);
+				//process_image(img);
+
+				free_image(frame->image);
+				frame->image = img;
+
+				frame->texture = image_to_texture(Renderer, img);
+
+				SDL_QueryTexture(frame->texture, NULL, NULL, &frame->image_w, &frame->image_h);
 
 				SDL_free(path);
 				break;
@@ -105,8 +117,24 @@ int handle_events(SDL_Event event, Frame *frame) {
 				if (frame->current_text_area) {
 					char c = event.text.text[0];
 					if (frame->current_text_area->digits && isdigit(c) ||
-						frame->current_text_area->alpha && isalpha(c))
-						add_char(Renderer, frame->current_text_area->text, event.text.text[0]);
+						frame->current_text_area->alpha && (isalpha(c) || c == '_'))
+					{
+						TTF_Font *font = TTF_OpenFont("graphics/DejaVuSans.ttf", (int)(frame->current_text_area->text->size * DELTA));
+
+						char buff[2];
+						buff[0] = c;
+						buff[1] = '\0';
+
+					    SDL_Surface *surface_temp = TTF_RenderUTF8_Blended(font, buff, White);
+
+						int size_element = surface_temp->w;
+
+						SDL_FreeSurface(surface_temp);
+						TTF_CloseFont(font);
+
+						if (size_element + frame->current_text_area->text->rect->w < frame->current_text_area->rect->rect->w - DEFAULT_BORDER_W * DELTA_W)
+							add_char(Renderer, frame->current_text_area->text, c);
+					}
 				}
 				printf("char is: %s\n", event.text.text);
 				break;

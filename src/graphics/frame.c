@@ -3,7 +3,7 @@
 #include "gui_elements/text.h"
 #include "gui_elements/button.h"
 #include "gui_elements/text_area.h"
-#include "image.h"
+#include "image_graphics.h"
 #include "globals.h"
 
 #include <SDL2/SDL_image.h>
@@ -16,9 +16,12 @@ Frame *create_frame(Frame *parent)
 
 	frame->name = NULL;
 
-    frame->image = NULL;
+	frame->image = NULL;
+    frame->texture = NULL;
     frame->image_w = 0;
     frame->image_h = 0;
+
+	frame->drop_zone = 0;
 
     frame->rectangles = NULL;
     frame->texts = NULL;
@@ -54,9 +57,14 @@ void clear_frame(Frame *frame)
 	free(frame->name);
 	frame->name = NULL;
 
+	free_image(frame->image);
 	frame->image = NULL;
+
+	frame->texture = NULL;
     frame->image_w = 0;
     frame->image_h = 0;
+
+	frame->drop_zone = 0;
 
 	destroy_rectangles(frame->rectangles);
     frame->rectangles = NULL;
@@ -96,11 +104,9 @@ void destroy_frame(Frame *frame)
 {
 	if (!frame)
 		return;
-	
-	free(frame->name);
 
-	if (frame->image)
-		SDL_DestroyTexture(frame->image);
+	if (frame->texture)
+		SDL_DestroyTexture(frame->texture);
 
 	if (frame->quit_function)
 		frame->quit_function(frame->quit_args);

@@ -12,9 +12,18 @@ Save format:
 Magic number: "SOCR" (4 bytes) // Super OCR
 Vesrion: 0 (4 bytes)
 Learning coeff: 0 (8 bytes)
+
 C steps: 0 (4 bytes)
+
 Nb layers: 0 (4 bytes)
 Size of each layer: {0, ...} (4 bytes * (Nb layers))
+
+Longest streak: (4 bytes)
+Sum guesses: (8 bytes)
+Sum guesses 100: (8 bytes)
+Sum certainty: (8 bytes)
+Sum certainty100: (8 bytes)
+
 W1 (8 bytes per elements)
 B1
 W2
@@ -35,7 +44,7 @@ void save_ocr(const char *path, Ocr *ocr)
 	char magic_number[4] = "SOCR";
 	fwrite(magic_number, sizeof(char), 4, file);
 
-	int version = 1;
+	int version = 2;
 	fwrite(&version, sizeof(int), 1, file);
 
 	fwrite(&ocr->learning_coeff, sizeof(double), 1, file);
@@ -43,6 +52,12 @@ void save_ocr(const char *path, Ocr *ocr)
 	fwrite(&ocr->c_steps, sizeof(int), 1, file);
 
 	fwrite(&ocr->nb_layers, sizeof(int), 1, file);
+
+	fwrite(ocr->longest_streak, sizeof(int), 1, file);
+	fwrite(ocr->sum_guesses, sizeof(double), 1, file);
+	fwrite(ocr->sum_guesses_100, sizeof(double), 1, file);
+	fwrite(ocr->sum_certainty, sizeof(double), 1, file);
+	fwrite(ocr->sum_certainty_100, sizeof(double), 1, file);
 
 	fwrite(ocr->size_layers, sizeof(int), ocr->nb_layers, file);
 
@@ -85,7 +100,7 @@ Ocr *load_ocr(const char *path)
     if (fread(&version, sizeof(int), 1, file) != 1)
         goto error;
 
-    if (version != 1)
+    if (version != 2)
     {
         fprintf(stderr, "load_ocr: unsupported version %d\n", version);
         goto error;
@@ -110,6 +125,27 @@ Ocr *load_ocr(const char *path)
         goto error;
     }
 
+    int longest_streak;
+    double sum_guesses;
+    double sum_guesses_100;
+    double sum_certainty;
+    double sum_certainty_100;
+
+    if (fread(&longest_streak, sizeof(int), 1, file) != 1)
+        goto error;
+
+    if (fread(&sum_guesses, sizeof(double), 1, file) != 1)
+        goto error;
+
+    if (fread(&sum_guesses_100, sizeof(double), 1, file) != 1)
+        goto error;
+
+    if (fread(&sum_certainty, sizeof(double), 1, file) != 1)
+        goto error;
+
+    if (fread(&sum_certainty_100, sizeof(double), 1, file) != 1)
+        goto error;
+
     int *size_layers = malloc(sizeof(int) * nb_layers);
 
     if (!size_layers)
@@ -122,20 +158,23 @@ Ocr *load_ocr(const char *path)
     }
 
     Ocr *ocr = create_ocr(learning_coeff, nb_layers, size_layers);
+    //free(size_layers);
 
     if (!ocr)
-    {
-        free(size_layers);
         goto error;
-    }
 
     *ocr->c_steps = c_steps;
+    *ocr->longest_streak = longest_streak;
+    *ocr->sum_guesses = sum_guesses;
+    *ocr->sum_guesses_100 = sum_guesses_100;
+    *ocr->sum_certainty = sum_certainty;
+    *ocr->sum_certainty_100 = sum_certainty_100;
 
     Layer *curr = ocr->nn->next;
 
     while (curr)
     {
-        int weights_count = curr->current_size * curr->previous_size;
+        size_t weights_count = (size_t)curr->current_size * curr->previous_size;
 
         if (fread(curr->weights, sizeof(double), weights_count, file) != weights_count)
         {
@@ -143,7 +182,7 @@ Ocr *load_ocr(const char *path)
             goto error;
         }
 
-        if (fread(curr->biases, sizeof(double), curr->current_size, file) != curr->current_size)
+        if (fread(curr->biases, sizeof(double), curr->current_size, file) != (size_t)curr->current_size)
         {
             destroy_ocr(ocr);
             goto error;
@@ -153,7 +192,6 @@ Ocr *load_ocr(const char *path)
     }
 
     fclose(file);
-
     return ocr;
 
 error:

@@ -1,4 +1,4 @@
-#include "image.h"
+#include "image_graphics.h"
 #include "globals.h"
 
 #include <SDL2/SDL_image.h>
@@ -12,18 +12,18 @@ int load_image(Frame *frame, const char *path)
     if (!new_texture)
     {
         fprintf(stderr,
-                "Erreur chargement: %s\n",
+                "Loading error: %s\n",
                 IMG_GetError());
         return 0;
     }
 
-    if (frame->image)
-        SDL_DestroyTexture(frame->image);
+    if (frame->texture)
+        SDL_DestroyTexture(frame->texture);
 
-    frame->image = new_texture;
+    frame->texture = new_texture;
 
     SDL_QueryTexture(
-        frame->image,
+        frame->texture,
         NULL,
         NULL,
         &frame->image_w,
@@ -34,7 +34,7 @@ int load_image(Frame *frame, const char *path)
 
 void render_image(Frame *frame)
 {
-    if (!frame->image)
+    if (!frame->texture)
         return;
 
     float scale_x =
@@ -59,7 +59,7 @@ void render_image(Frame *frame)
 
     SDL_RenderCopy(
         Renderer,
-        frame->image,
+        frame->texture,
         NULL,
         &dst);
 }

@@ -1,6 +1,7 @@
 #include "train.h"
 #include "../useful/globals_ocr.h"
 #include "../process_img/image.h"
+#include "../process_img/detection.h"
 #include "../useful/matrix.h"
 #include "nn.h"
 
@@ -29,37 +30,41 @@ double start_to_loss(int *input, Ocr *ocr, int expected)
 
     put_in_input(input, 28, 28, input_layer);
 
-    forward(input_layer);
+    forward(input_layer, ocr->training);
 
     Layer *output_layer = get_output_layer(input_layer);
 
     soft_max(output_layer);
 
-    double p = output_layer->output[expected - 1];
+    double p = output_layer->output[expected];
 
     if (p < 1e-8) p = 1e-8;
     double loss = -log(p);
     int idx_max_output = index_max_output(output_layer);
     int result = 0;
 
-    if (idx_max_output == expected - 1)
+    if (idx_max_output == expected)
         result = 1;
 
+	pthread_mutex_lock(&mutex_global_ocr);
     pthread_mutex_lock(&mutex_char);
+
+	update_stats_ocr(ocr, result, output_layer->output[expected]);
+
     printf("loss: %f, value: %f, steps: %d, "
             "expected: %d, get: %d, result: %d, lr: %f\n",
-            loss, output_layer->output[expected - 1], *ocr->c_steps,
-            expected - 1, idx_max_output, result, *ocr->learning_coeff);
+            loss, output_layer->output[expected], *ocr->c_steps,
+            expected, idx_max_output, result, *ocr->learning_coeff);
 
-	update_stats_ocr(ocr, result, output_layer->output[expected - 1]);
     pthread_mutex_unlock(&mutex_char);
+	pthread_mutex_unlock(&mutex_global_ocr);
 
     //print_outputs(output_layer);
 
     for (int i = 0; i < output_layer->current_size; i++)
         output_layer->delta[i] = output_layer->output[i];
 
-    output_layer->delta[expected - 1] -= 1.0; //cross entropy
+    output_layer->delta[expected] -= 1.0; //cross entropy
 
     return loss;
 }
@@ -69,9 +74,9 @@ double browse(int *input, Ocr *ocr, int expected)
     double loss = start_to_loss(input, ocr, expected);
 
     Layer *output_layer = get_output_layer(ocr->nn);
-    backward(output_layer);
+    backward(output_layer, ocr->training);
 
-    compute_gradients(output_layer);
+    compute_gradients(output_layer, ocr->training);
 
     update_SGD(output_layer, *ocr->learning_coeff);
 
@@ -141,12 +146,26 @@ void *train_thread(void *arg)
 
         int *square = coordinates_to_matrix(img, 28 * i, 0, 28 * (i + 1) - 1, 27);
 
+        int *save = square;
+
+        int x0 = 0;
+        int y0 = 0;
+        int x1 = 0;
+        int y1 = 0;
+
+        int *bbox = get_bbox(square, 28, 28, &x0, &y0, &x1, &y1);
+
+		square = matrix_to_28x28(bbox, (x1 - x0 + 1), (y1 - y0 + 1));
+
+        free(save);
+        free(bbox);
+
         start_to_loss(square, ocr, expected);
 
         Layer *output = get_output_layer(ocr->nn);
 
-        backward(output);
-        compute_gradients(output);
+        backward(output, ocr->training);
+        compute_gradients(output, ocr->training);
 
         int ret = pthread_barrier_wait(&barrier_char); // Wait for every threads to read one char
 
@@ -274,27 +293,5 @@ void train(size_t nb_file, Ocr *ocr, int nb_threads)
     free_image(img);
 
     fclose(ans);
-}
-
-void launch_ocr(char *file, Ocr *ocr)
-{
-    Image *img = load_png(file);
-    process_image(img);
-
-    for (int i = 0; i < 81; i++)
-    {
-        if (img->valid_squares[i])
-        {
-            put_in_input(img->squares[i], 28, 28, ocr->nn);
-            forward(ocr->nn);
-
-            Layer *output_layer = get_output_layer(ocr->nn);
-            soft_max(output_layer);
-
-            int idx_max_output = index_max_output(output_layer);
-        }
-    }
-
-    free_image(img);
 }
 

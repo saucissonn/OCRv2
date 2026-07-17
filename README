@@ -13,6 +13,4 @@ TODO list:
 
 -Adapt OCR with long int (ez but lazy)
 -Add comments
--Create a visualizer of the training / process of the OCR
--Optimize the OCR
--Create an optimized mode
+-Create a visualizer of the process of the OCR

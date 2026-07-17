@@ -26,24 +26,28 @@ Layer *create_layer(char *name, int previous_size, int current_size)
         res->grad_biases = NULL;
         res->delta = NULL;
         res->z = NULL;
+
+		res->mc_mask = NULL;
     }
     else
     {
         double scale = sqrt(6.0 / (previous_size + current_size));
         res->weights = malloc(previous_size * current_size * sizeof(double));
-        res->grad_weights = malloc(previous_size * current_size * sizeof(double));
-
         for (int i = 0; i < previous_size * current_size; i++)
             res->weights[i] = rand_uniform() * scale;
 
-        res->biases = malloc(current_size * sizeof(double));
-        res->grad_biases = malloc(current_size * sizeof(double));
+        res->grad_weights = malloc(previous_size * current_size * sizeof(double));
 
+        res->biases = malloc(current_size * sizeof(double));
         for (int i = 0; i < current_size; i++)
             res->biases[i] = 0.01;
 
+        res->grad_biases = malloc(current_size * sizeof(double));
+
         res->delta = malloc(current_size * sizeof(double));
         res->z = malloc(current_size * sizeof(double));
+		
+		res->mc_mask = malloc(current_size * sizeof(int));
     }
 
     return res;
@@ -55,7 +59,7 @@ Layer *init_layers()
 
     int nb_input = 28 * 28;
     int nb_hidden = 256;
-    int nb_output = 9; // Digits from 1 to 9
+    int nb_output = 10; // Digits from 1 to 9
 
     Layer *input = create_layer("input", nb_input, nb_input); // We use a 28 * 28 image
 
@@ -117,6 +121,8 @@ Layer *create_layer_clone(Layer *l)
         else
             clone->z = NULL;
 
+		clone->mc_mask = malloc(clone->current_size * sizeof(int));
+
         clone->prev = prev_clone;
         clone->next = NULL;
 
@@ -142,6 +148,7 @@ void free_layer(Layer *l)
     free(l->z);
     free(l->grad_biases);
     free(l->grad_weights);
+	free(l->mc_mask);
 }
 
 void free_layers(Layer *l)
@@ -168,6 +175,9 @@ void free_layer_clone(Layer *l)
         free(l->z);
         free(l->grad_biases);
         free(l->grad_weights);
+
+		free(l->mc_mask);		
+
         free(l);
 
         l = next;

@@ -9,7 +9,7 @@ typedef struct TextArea {
 	Rectangle *rect;
 
 	int digits; // Can contains digits
-	int alpha;	// Can contains alpha
+	int alpha;	// Can contains alpha and '_'
 
 	struct TextArea *next;
 } TextArea;

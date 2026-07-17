@@ -62,7 +62,54 @@ void init_global_variables()
         fprintf(stderr, "Impossible to load the font\n");
 
 	// Define global variables for the OCR
-	NB_THREADS_MAX = sysconf(_SC_NPROCESSORS_ONLN) / 2;
+	NB_THREADS_MAX = sysconf(_SC_NPROCESSORS_ONLN) - 2;
 	if (NB_THREADS_MAX < 1)
 		NB_THREADS_MAX = 1;
+}
+
+#include <stdlib.h>
+
+char *itoa_base_n(int x, int n)
+{
+    char buffer[32];
+    int i = 0;
+    int negative = 0;
+    unsigned int value;
+
+    if (n == 0)
+    {
+        char *res = malloc(2);
+        if (!res)
+            return NULL;
+        res[0] = '0';
+        res[1] = '\0';
+        return res;
+    }
+
+    if (x < 0)
+    {
+        negative = 1;
+        value = (unsigned int)(-x);
+    }
+    else
+        value = (unsigned int)x;
+
+    while (value > 0)
+    {
+        buffer[i++] = '0' + (value % n);
+        value /= n;
+    }
+
+    if (negative)
+        buffer[i++] = '-';
+
+    char *res = malloc(i + 1);
+    if (!res)
+        return NULL;
+
+    res[i] = '\0';
+    for (int j = 0; j < i; j++)
+        res[j] = buffer[i - 1 - j];
+
+    return res;
 }

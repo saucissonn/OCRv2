@@ -13,6 +13,4 @@ void average_gradients(Layer **outputs, int nb_threads);
 void *train_thread(void *arg);
 void train(size_t nb_file, Ocr *ocr, int nb_threads);
 
-void launch_ocr(char *file, Ocr *ocr);
-
 #endif

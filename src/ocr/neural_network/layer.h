@@ -5,15 +5,17 @@ typedef struct Layer
 {
     char *name;
     int previous_size;
-    int current_size;  //256 then 128
+    int current_size;
 
-    double *weights;   //matrix (output_size × input_size)
+    double *weights; //matrix (output_size × input_size)
     double *grad_weights;
-    double *biases;    //output_size
+    double *biases; //output_size
     double *grad_biases;
-    double *output;    //activations
-    double *delta;     //gradients
+    double *output; //activations
+    double *delta; //gradients
     double *z;
+
+	int *mc_mask; //Monte Carlo mask
 
     struct Layer *prev;
     struct Layer *next;

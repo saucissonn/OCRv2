@@ -5,6 +5,8 @@
 #include "graphics/utils.h"
 #include "graphics/globals.h"
 #include "ocr/useful/globals_ocr.h"
+#include "ocr/neural_network/ocr.h"
+#include "ocr/neural_network/save.h"
 
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_image.h>

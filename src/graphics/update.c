@@ -54,6 +54,7 @@ void resize_texts(SDL_Renderer *renderer, Text *texts) {
         curr->rect->y = curr->y * DELTA_H;
 
 		TTF_CloseFont(curr->font);
+		curr->font = NULL;
         TTF_Font *font = TTF_OpenFont("graphics/DejaVuSans.ttf", curr->size * DELTA);
         curr->font = font;
 

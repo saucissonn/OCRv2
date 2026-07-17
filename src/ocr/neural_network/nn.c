@@ -2,6 +2,7 @@
 #include "../useful/globals_ocr.h"
 #include "../process_img/image.h"
 #include "../useful/matrix.h"
+#include "../useful/utils.h"
 
 #include <math.h>
 #include <stdio.h>
@@ -62,7 +63,21 @@ void sigmoid(Layer *l)
         l->output[i] = 1./(1. + exp(-(l->output)[i]));
 }
 
-void forward(Layer *l)
+void generate_mc_mask(Layer *l)
+{
+	if (!l->mc_mask) return;
+
+	int cs = l->current_size;
+	for (int i = 0; i < cs; i++)
+		l->mc_mask[i] = 1;
+
+	double p = 1.;
+
+	for (int i = 0; i < cs; i++)
+		l->mc_mask[i] = (rand_uniform() < p);
+}
+
+void forward(Layer *l, int training)
 {
 	if (!l) return;
 
@@ -75,6 +90,9 @@ void forward(Layer *l)
 		int ps = curr->previous_size;
 		double sum = 0;
 
+        if (curr->next)
+            generate_mc_mask(curr);
+
 		for (int i = 0; i < cs; i++)
 		{
 			sum = curr->biases[i];
@@ -86,8 +104,17 @@ void forward(Layer *l)
 			curr->output[i] = sum;
 		}
 
-		if (curr->next)
+		if (curr->next)			
 			relu(curr);
+
+		if (training == 0)
+		{
+			for (int i = 0; i < cs; i++)
+			{
+				if (curr->mc_mask[i] == 0)
+				    curr->output[i] = 0;
+			}
+		}
 
 		prev = curr;
 		curr = curr->next;
@@ -102,7 +129,7 @@ double relu_prime(double v)
     return 1.0;
 }
 
-void backward(Layer *l)
+void backward(Layer *l, int training)
 {
     if (!l) return;
 
@@ -121,6 +148,13 @@ void backward(Layer *l)
 		for (int j = 0; j < ps; j++)
 		{
 			s = 0.0;
+
+            if (training == 0 && prev->mc_mask[j] == 0)
+            {
+				prev->delta[j] = 0;
+                
+				continue;
+            }
 			
 			for (int i = 0; i < cs; i++)
 				s += curr->weights[i*ps + j] * curr->delta[i];
@@ -140,7 +174,7 @@ void backward(Layer *l)
 	}
 }
 
-void compute_gradients(Layer *l)
+void compute_gradients(Layer *l, int training)
 {
     if (!l) return;
 
@@ -156,15 +190,30 @@ void compute_gradients(Layer *l)
 
         for (int i = 0; i < cs; i++)
         {
-            for (int j = 0; j < ps; j++)
-            {
-                int idx = i * ps + j;
+			if (training == 0 && curr->mc_mask[i] == 0)
+			{
+				for (int j = 0; j < ps; j++)
+				{
+					int idx = i * ps + j;
 
-                curr->grad_weights[idx] = curr->delta[i] * prev->output[j];
-            }
+					curr->grad_weights[idx] = 0;
+				}
 
-            curr->grad_biases[i] = curr->delta[i];
-        }
+                curr->grad_biases[i] = 0;
+			}
+			
+			else
+			{			
+				for (int j = 0; j < ps; j++)
+				{
+					int idx = i * ps + j;
+
+					curr->grad_weights[idx] = curr->delta[i] * prev->output[j];
+				}
+
+				curr->grad_biases[i] = curr->delta[i];
+			}
+		}
 
         curr = prev;
         prev = prev->prev;
